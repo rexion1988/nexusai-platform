@@ -693,9 +693,15 @@ function handleInvoiceGen() {
 
 // ===== BRAND NEW: VISUAL WYSIWYG PDF EDITOR =====
 function handlePdfEditor() {
-    // 1. Initialize pdf.js worker
-    if (window.pdfjsLib && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    // 1. Initialize pdf.js worker safely
+    const pdfjs = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+    if (!pdfjs) {
+        showToast("PDF Renderer not loaded from CDN.", "error");
+        console.error("PDF.js global object missing.");
+    } else {
+        // Disable worker to prevent Cross-Origin SecurityErrors on GitHub Pages / Netlify
+        pdfjs.GlobalWorkerOptions.workerSrc = '';
+        pdfjs.disableWorker = true;
     }
 
     let pdfDoc = null;
@@ -713,15 +719,17 @@ function handlePdfEditor() {
             document.getElementById('pdf-setup').style.display = 'none';
             document.getElementById('pdf-active-editor').style.display = 'flex';
             
-            const arrayBuffer = await file.arrayBuffer();
-            window._pdfArrayBuffer = arrayBuffer; 
-            
             try {
-                pdfDoc = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const arrayBuffer = await file.arrayBuffer();
+                window._pdfArrayBuffer = arrayBuffer; 
+            
+                if (!pdfjs) throw new Error("PDF.js library is missing.");
+                
+                pdfDoc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
                 renderPage(pageNum);
             } catch (err) {
                 console.error("Error loading PDF", err);
-                showToast("Failed to load PDF via Viewer.", "error");
+                showToast("Failed to load PDF via Viewer: " + err.message, "error");
             }
         });
     }
@@ -820,10 +828,19 @@ function handlePdfEditor() {
                     if(match) { r = parseInt(match[1], 16) / 255; g = parseInt(match[2], 16) / 255; b = parseInt(match[3], 16) / 255; }
                 }
 
-                // Coordinate Translation Mapper
+                // Coordinate Translation Mapper Native Math
                 // Adjust cssTop down by ~80% of font size to account for text baseline bounding
                 const baselineY = cssTop + (fontSize * 0.8);
-                const [pdfX, pdfY] = currentViewport.convertToPdfPoint(cssLeft, baselineY);
+                
+                // Fallback mathematical matrix translation if convertToPdfPoint is missing in CDN version
+                let pdfX, pdfY;
+                if (currentViewport.convertToPdfPoint) {
+                    [pdfX, pdfY] = currentViewport.convertToPdfPoint(cssLeft, baselineY);
+                } else {
+                    const transform = currentViewport.transform;
+                    pdfX = (cssLeft - transform[4]) / transform[0];
+                    pdfY = (baselineY - transform[5]) / transform[3];
+                }
                 
                 // Scale map the DOM font size back to PDF Native Point Size 
                 const nativeFontSize = fontSize / scale;
