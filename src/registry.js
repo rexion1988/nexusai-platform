@@ -3,7 +3,7 @@ export const CATEGORIES = [
     { id: 'writing', name: 'AI Writing Tools', icon: '✍️', color: '#7c5cfc', desc: 'Generate articles, emails, and more with AI-powered writing assistance.', count: 5 },
     { id: 'image', name: 'AI Image Tools', icon: '🎨', color: '#f472b6', desc: 'Create, edit, and enhance images with cutting-edge AI technology.', count: 5 },
     { id: 'video-audio', name: 'Video & Audio Tools', icon: '🎬', color: '#fbbf24', desc: 'Transform audio and video content with AI transcription, TTS, and scripts.', count: 5 },
-    { id: 'business', name: 'AI Business Tools', icon: '💼', color: '#00d4aa', desc: 'Build resumes, generate invoices, and create business assets instantly.', count: 5 },
+    { id: 'business', name: 'AI Business Tools', icon: '💼', color: '#00d4aa', desc: 'Build resumes, generate invoices, and create business assets instantly.', count: 6 },
     { id: 'marketing', name: 'Marketing & SEO Tools', icon: '📱', color: '#38bdf8', desc: 'Boost your marketing with AI-generated copy, hashtags, and SEO content.', count: 5 },
     { id: 'utility', name: 'AI Utility Tools', icon: '🛠️', color: '#fb923c', desc: 'Code generation, translation, color palettes, QR codes, and more.', count: 5 },
 ];
@@ -33,6 +33,7 @@ export const TOOLS = [
     { id: 18, slug: 'business-name', name: 'Business Name Generator', category: 'business', icon: '🏢', desc: 'Generate creative, memorable business names and check domain availability.', keywords: 'business name generator, company name ideas' },
     { id: 19, slug: 'slogan-generator', name: 'Slogan Generator', category: 'business', icon: '💡', desc: 'Create catchy taglines and slogans that capture your brand essence.', keywords: 'slogan generator, tagline maker, brand slogan' },
     { id: 20, slug: 'invoice-generator', name: 'Invoice Generator', category: 'business', icon: '🧾', desc: 'Create professional invoices instantly. Download as PDF, ready to send.', keywords: 'free invoice generator, invoice maker, invoice template' },
+    { id: 31, slug: 'pdf-editor', name: 'Secure PDF Editor', category: 'business', icon: '📑', desc: 'Securely edit, sign, and add text to your PDF files directly in your browser. No uploads required.', keywords: 'PDF editor, edit PDF, free PDF tools' },
     // Marketing
     { id: 21, slug: 'seo-meta', name: 'SEO Meta Generator', category: 'marketing', icon: '🔎', desc: 'Generate optimized meta titles and descriptions to boost your search engine rankings.', keywords: 'SEO meta generator, meta description writer, title tag' },
     { id: 22, slug: 'hashtag-generator', name: 'Hashtag Generator', category: 'marketing', icon: '#️⃣', desc: 'Find the best performing hashtags for Instagram, Twitter, TikTok, and LinkedIn.', keywords: 'hashtag generator, best hashtags, trending hashtags' },

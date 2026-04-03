@@ -27,13 +27,17 @@ export function getToolUI(slug) {
             </div>
             <div style="display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
                 <div class="input-group" style="flex:1;min-width:150px;">
-                    <label class="input-label">Style</label>
-                    <select class="input-field" id="img-style"><option>Realistic</option><option>Digital Art</option><option>Anime</option><option>Oil Painting</option><option>Watercolor</option><option>3D Render</option></select>
+                    <label class="input-label">Art Style</label>
+                    <select class="input-field" id="img-style"><option>Photorealistic</option><option>Cinematic</option><option>Anime</option><option>Digital Illustration</option><option>3D Render</option></select>
                 </div>
                 <div class="input-group" style="flex:1;min-width:150px;">
-                    <label class="input-label">Size</label>
-                    <select class="input-field" id="img-size"><option>1024x1024</option><option>512x512</option><option>768x768</option></select>
+                    <label class="input-label">Aspect Ratio</label>
+                    <select class="input-field" id="aspect"><option>1:1</option><option>16:9</option><option>9:16</option></select>
                 </div>
+            </div>
+            <div class="input-group" style="margin-bottom:1.5rem;">
+                <label class="input-label">Negative Prompt (What to avoid)</label>
+                <input class="input-field" id="negative-prompt" placeholder="e.g., blurry, bad anatomy, text, watermarks">
             </div>
             <button class="btn btn-primary" id="tool-generate" onclick="window.toolGenerate()">🎨 Generate Image</button>
             <div class="tool-output" id="tool-output" style="margin-top:1.5rem;">
@@ -205,6 +209,50 @@ export function getToolUI(slug) {
                 </div>
                 <div class="tool-output-section">
                     <div class="invoice-preview" id="tool-output"><div class="tool-output-empty" style="color:#666;"><span class="empty-icon">🧾</span><p>Invoice preview will appear here</p></div></div>
+                    <div class="tool-actions" id="output-actions"></div>
+                </div>
+            </div>
+        </div>`,
+        'pdf-editor': `
+        <div class="tool-workspace">
+            <div class="tool-workspace-header">
+                <h3 class="tool-workspace-title">Secure PDF Editor</h3>
+            </div>
+            <p style="margin-bottom:1.5rem;color:var(--text-secondary);">Add text, dates, or signatures over your PDF. Processed entirely in your browser—100% private.</p>
+            <div class="tool-grid-2">
+                <div class="tool-input-section">
+                    <div class="input-group">
+                        <label class="input-label">1. Upload PDF Document</label>
+                        <div style="border:2px dashed var(--border-medium);border-radius:var(--radius-lg);padding:2rem;text-align:center;cursor:pointer;background:var(--bg-card-hover);" onclick="document.getElementById('file-input').click()">
+                            <div style="font-size:32px;margin-bottom:0.5rem;">📄</div>
+                            <p>Click to select PDF file</p>
+                            <input type="file" id="file-input" accept="application/pdf" style="display:none;">
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin-top:1.5rem;">
+                        <label class="input-label">2. Text to Add</label>
+                        <textarea class="input-field" id="pdf-text" rows="2" placeholder="e.g., APPROVED - 04/03/2026"></textarea>
+                    </div>
+                    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem;">
+                        <div class="input-group" style="flex:1;">
+                            <label class="input-label">X Position</label>
+                            <input type="number" class="input-field" id="pdf-x" value="50">
+                        </div>
+                        <div class="input-group" style="flex:1;">
+                            <label class="input-label">Y Position</label>
+                            <input type="number" class="input-field" id="pdf-y" value="100">
+                        </div>
+                        <div class="input-group" style="flex:1;">
+                            <label class="input-label">Font Size</label>
+                            <input type="number" class="input-field" id="pdf-size" value="24">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="window.toolGenerate()" style="margin-top:1.5rem;">⚙️ Inject Text & Download PDF</button>
+                </div>
+                <div class="tool-output-section">
+                    <div class="tool-output" id="tool-output" style="display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:300px;background:#f8f9fa;border:1px solid #e0e0ea;border-radius:var(--radius-md);">
+                        <div class="tool-output-empty"><span class="empty-icon">📑</span><p style="color:#555;">Your original file will remain untouched.</p></div>
+                    </div>
                     <div class="tool-actions" id="output-actions"></div>
                 </div>
             </div>
