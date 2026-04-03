@@ -90,15 +90,39 @@ function simulate(cb) {
     setTimeout(cb, 600 + Math.random() * 400);
 }
 
+async function callAIBackend(systemPrompt, userPrompt, useTyping = true) {
+    const out = document.getElementById('tool-output');
+    if (out) out.innerHTML = '<div style="text-align:center;padding:2rem;"><div class="spinner spinner-lg" style="margin:0 auto 1rem;"></div><p style="color:var(--text-muted);font-size:var(--text-sm);">Thinking...</p></div>';
+    
+    try {
+        const res = await fetch('/api/generate-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ systemPrompt, userPrompt })
+        });
+        
+        if (!res.ok) throw new Error('Network response was not ok');
+        
+        const data = await res.json();
+        const text = data.result || JSON.stringify(data);
+        
+        if (useTyping) typeOutput(text);
+        else showOutput(`<div style="white-space:pre-wrap;">${text}</div>`);
+    } catch (err) {
+        console.error('AI Error:', err);
+        showOutput(`<div style="color:var(--accent-danger);"><p>⚠️ Connection Error</p><p style="font-size:var(--text-sm);margin-top:0.5rem;">Could not reach HuggingFace API. Are you sure you added your HF_TOKEN to Netlify Environment Variables?</p></div>`);
+    }
+}
+
 // ===== WRITING =====
 function handleArticleWriter() {
     window.toolGenerate = () => {
         const topic = getInput(); if (!topic) return showToast('Please enter a topic', 'error');
         const tone = getVal('tone'), length = getVal('length');
-        simulate(() => {
-            const article = generateArticle(topic, tone, length);
-            typeOutput(article);
-        });
+        
+        const systemPrompt = `You are an expert article writer. Your task is to write an engaging, well-structured article. Tone: ${tone}. Length requirement: ${length}. Ensure the article has a clear intro, body paragraphs, and a conclusion.`;
+        
+        callAIBackend(systemPrompt, `Write a comprehensive article about: "${topic}"`);
     };
 }
 
