@@ -866,12 +866,12 @@ function handlePdfEditor() {
             `;
             
             document.getElementById('output-actions').innerHTML = `
-                <a href="\${docUrl}" download="nexusai-edited.pdf" class="btn btn-primary" style="margin-top:1rem;background:#10b981;border:none;">💿 Download Compiled PDF</a>
+                <a href="${docUrl}" download="nexusai-edited.pdf" class="btn btn-primary" style="margin-top:1rem;background:#10b981;border:none;">💿 Download Compiled PDF</a>
             `;
             
         } catch (error) {
             console.error('Compiler Error:', error);
-            out.innerHTML = \`<p style="color:var(--accent-danger);">Compiler Error: \${error.message}</p>\`;
+            out.innerHTML = `<p style="color:var(--accent-danger);">Compiler Error: ${error.message}</p>`;
         }
     };
 }
