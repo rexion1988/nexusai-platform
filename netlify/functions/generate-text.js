@@ -7,25 +7,23 @@ export const handler = async (event, context) => {
   try {
     const { systemPrompt, userPrompt, modelType } = JSON.parse(event.body);
     
-    // Choose model based on type (default to Mistral for text)
-    const model = modelType || 'mistralai/Mistral-7B-Instruct-v0.2';
-    
-    // Format the prompt for Instruct models
-    const formattedPrompt = `<s>[INST] ${systemPrompt ? systemPrompt + '\n\n' : ''}${userPrompt} [/INST]`;
+    // Choose model based on type (default to Llama 3 for best quality on new router)
+    const model = modelType || 'meta-llama/Llama-3.1-8B-Instruct:fastest';
 
-    const response = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
+    const response = await fetch(`https://router.huggingface.co/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.HF_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        inputs: formattedPrompt,
-        parameters: {
-          max_new_tokens: 800,
-          temperature: 0.7,
-          return_full_text: false,
-        }
+        model: model,
+        messages: [
+            { role: "system", content: systemPrompt || "You are a helpful assistant." },
+            { role: "user", content: userPrompt }
+        ],
+        max_tokens: 800,
+        temperature: 0.7
       })
     });
 
@@ -38,10 +36,10 @@ export const handler = async (event, context) => {
     
     // Extract the generated text safely depending on the model's output format
     let generatedText = '';
-    if (Array.isArray(data) && data.length > 0 && data[0].generated_text) {
-        generatedText = data[0].generated_text;
-    } else if (data.generated_text) {
-        generatedText = data.generated_text;
+    if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+        generatedText = data.choices[0].message.content;
+    } else {
+        generatedText = JSON.stringify(data);
     }
 
     return {
