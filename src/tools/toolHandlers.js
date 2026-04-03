@@ -101,7 +101,10 @@ async function callAIBackend(systemPrompt, userPrompt, useTyping = true) {
             body: JSON.stringify({ systemPrompt, userPrompt })
         });
         
-        if (!res.ok) throw new Error('Network response was not ok');
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Server returned ${res.status}: ${errorText}`);
+        }
         
         const data = await res.json();
         const text = data.result || JSON.stringify(data);
@@ -110,7 +113,7 @@ async function callAIBackend(systemPrompt, userPrompt, useTyping = true) {
         else showOutput(`<div style="white-space:pre-wrap;">${text}</div>`);
     } catch (err) {
         console.error('AI Error:', err);
-        showOutput(`<div style="color:var(--accent-danger);"><p>⚠️ Connection Error</p><p style="font-size:var(--text-sm);margin-top:0.5rem;">Could not reach HuggingFace API. Are you sure you added your HF_TOKEN to Netlify Environment Variables?</p></div>`);
+        showOutput(`<div style="color:var(--accent-danger);"><p>⚠️ Connection Error</p><p style="font-size:var(--text-sm);margin-top:0.5rem;">${err.message}</p></div>`);
     }
 }
 
