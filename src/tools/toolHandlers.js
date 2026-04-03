@@ -691,73 +691,170 @@ function handleInvoiceGen() {
     };
 }
 
-// ===== BRAND NEW: PDF EDITOR =====
+// ===== BRAND NEW: VISUAL WYSIWYG PDF EDITOR =====
 function handlePdfEditor() {
-    window.toolGenerate = async () => {
-        if (!window._uploadedFileRaw) return showToast('Please upload a PDF file first.', 'error');
-        if (window._uploadedFileRaw.type !== 'application/pdf') return showToast('File must be a PDF.', 'error');
-        
-        const overlayText = getVal('pdf-text');
-        const overlayX = parseInt(getVal('pdf-x')) || 50;
-        const overlayY = parseInt(getVal('pdf-y')) || 50;
-        const fontSize = parseInt(getVal('pdf-size')) || 24;
-        
-        if (!overlayText) return showToast('Please enter text to overlay on the PDF', 'error');
+    // 1. Initialize pdf.js worker
+    if (window.pdfjsLib && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
 
-        document.getElementById('tool-output').innerHTML = `
-            <div style="text-align:center;padding:4rem 0;">
-                <div class="spinner spinner-lg" style="margin:0 auto 1rem;"></div>
-                <p>Processing PDF securely in your browser...</p>
-            </div>
-        `;
+    let pdfDoc = null;
+    let pageNum = 1;
+    let scale = 1.5;
+    let currentViewport = null;
 
-        try {
-            // Load file as ArrayBuffer
-            const arrayBuffer = await window._uploadedFileRaw.arrayBuffer();
+    // Attach File Upload Hook specifically for this tool
+    const fi = document.getElementById('file-input');
+    if (fi) {
+        fi.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || file.type !== 'application/pdf') return;
             
-            // Wait for pdf-lib to be available via CDN
-            if (!window.PDFLib) {
-                throw new Error("PDF processing library didn't load. Try refreshing.");
+            document.getElementById('pdf-setup').style.display = 'none';
+            document.getElementById('pdf-active-editor').style.display = 'flex';
+            
+            const arrayBuffer = await file.arrayBuffer();
+            window._pdfArrayBuffer = arrayBuffer; 
+            
+            try {
+                pdfDoc = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                renderPage(pageNum);
+            } catch (err) {
+                console.error("Error loading PDF", err);
+                showToast("Failed to load PDF via Viewer.", "error");
             }
+        });
+    }
+
+    async function renderPage(num) {
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas?.getContext('2d');
+        if(!canvas) return;
+        
+        const page = await pdfDoc.getPage(num);
+        currentViewport = page.getViewport({ scale: scale });
+        
+        canvas.height = currentViewport.height;
+        canvas.width = currentViewport.width;
+        
+        const renderContext = { canvasContext: ctx, viewport: currentViewport };
+        await page.render(renderContext).promise;
+    }
+
+    // Add Overlay Text
+    window.addPdfText = () => {
+        const overlay = document.getElementById('pdf-overlay');
+        const wrapper = document.createElement('textarea');
+        wrapper.className = 'pdf-text-node';
+        wrapper.value = "New Text";
+        wrapper.style.left = '50px';
+        wrapper.style.top = '50px';
+        wrapper.style.fontSize = document.getElementById('pdf-font-size').value + 'px';
+        wrapper.style.color = document.getElementById('pdf-text-color').value;
+        
+        // Dragging Logic
+        let isDragging = false, startX, startY, initialX, initialY;
+        
+        wrapper.addEventListener('mousedown', (e) => {
+            // Prevent dragging from firing if the user is resizing the textarea via the bottom-right corner
+            if (e.offsetX > wrapper.offsetWidth - 15 && e.offsetY > wrapper.offsetHeight - 15) return;
             
-            // Load existing PDF
-            const pdfDoc = await window.PDFLib.PDFDocument.load(arrayBuffer);
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            initialX = parseInt(wrapper.style.left, 10);
+            initialY = parseInt(wrapper.style.top, 10);
+            wrapper.style.cursor = 'grabbing';
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            wrapper.style.left = (initialX + dx) + 'px';
+            wrapper.style.top = (initialY + dy) + 'px';
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if(isDragging) {
+                isDragging = false;
+                wrapper.style.cursor = 'grab';
+            }
+        });
+
+        overlay.appendChild(wrapper);
+        wrapper.focus();
+    };
+
+    // Compile & Download (Translating Coordinates)
+    window.toolGenerate = async () => {
+        const out = document.getElementById('tool-output');
+        out.style.display = 'flex';
+        out.innerHTML = '<div style="text-align:center;padding:2rem;"><div class="spinner spinner-lg"></div><p>Compiling visual layers into native PDF bytes...</p></div>';
+        
+        try {
+            if (!window.PDFLib) throw new Error("pdf-lib not loaded");
+            if (!window._pdfArrayBuffer) throw new Error("No PDF loaded");
             
-            // Get the first page
-            const pages = pdfDoc.getPages();
+            const pdfDocLib = await window.PDFLib.PDFDocument.load(window._pdfArrayBuffer);
+            const pages = pdfDocLib.getPages();
             const firstPage = pages[0];
             
-            // Draw text
-            firstPage.drawText(overlayText, {
-                x: overlayX,
-                y: overlayY,
-                size: fontSize,
-                color: window.PDFLib.rgb(1, 0, 0), // Red text to stand out
-            });
+            const overlay = document.getElementById('pdf-overlay');
+            const nodes = overlay.querySelectorAll('.pdf-text-node');
             
-            // Serialize back to bytes
-            const pdfBytes = await pdfDoc.save();
+            for (let node of nodes) {
+                const text = node.value;
+                const cssLeft = parseInt(node.style.left, 10) || 0;
+                const cssTop = parseInt(node.style.top, 10) || 0;
+                const fontSize = parseInt(node.style.fontSize, 10) || 16;
+                
+                // Color Parsing
+                let r = 0, g = 0, b = 0;
+                let cStr = node.style.color || '#000000';
+                if (cStr.startsWith('rgb')) {
+                    const vals = cStr.match(/\\d+/g);
+                    if (vals) { r = parseInt(vals[0])/255; g = parseInt(vals[1])/255; b = parseInt(vals[2])/255; }
+                } else if (cStr.startsWith('#')) {
+                    const match = cStr.match(/#([a-f\\d]{2})([a-f\\d]{2})([a-f\\d]{2})/i);
+                    if(match) { r = parseInt(match[1], 16) / 255; g = parseInt(match[2], 16) / 255; b = parseInt(match[3], 16) / 255; }
+                }
+
+                // Coordinate Translation Mapper
+                // Adjust cssTop down by ~80% of font size to account for text baseline bounding
+                const baselineY = cssTop + (fontSize * 0.8);
+                const [pdfX, pdfY] = currentViewport.convertToPdfPoint(cssLeft, baselineY);
+                
+                // Scale map the DOM font size back to PDF Native Point Size 
+                const nativeFontSize = fontSize / scale;
+
+                firstPage.drawText(text, {
+                    x: pdfX,
+                    y: pdfY,
+                    size: nativeFontSize,
+                    font: await pdfDocLib.embedFont(window.PDFLib.StandardFonts.Helvetica),
+                    color: window.PDFLib.rgb(r, g, b),
+                });
+            }
             
-            // Create a Blob download
+            const pdfBytes = await pdfDocLib.save();
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const docUrl = URL.createObjectURL(blob);
             
-            showOutput(`
+            out.innerHTML = `
                 <div style="text-align:center;padding:2rem;">
-                    <div style="font-size:48px;margin-bottom:1rem;">📑</div>
-                    <h3>PDF Processed Successfully</h3>
-                    <p style="color:var(--text-muted);font-size:var(--text-sm);margin-top:0.5rem;">Your text has been inserted securely within your browser.</p>
+                    <div style="font-size:48px;margin-bottom:1rem;">✅</div>
+                    <h3 style="color:#111;">PDF Compiled Successfully</h3>
                 </div>
-            `, false);
+            `;
             
             document.getElementById('output-actions').innerHTML = `
-                <a href="${docUrl}" download="nexusai-edited.pdf" class="btn btn-primary">💿 Download Annotated PDF</a>
+                <a href="\${docUrl}" download="nexusai-edited.pdf" class="btn btn-primary" style="margin-top:1rem;background:#10b981;border:none;">💿 Download Compiled PDF</a>
             `;
             
         } catch (error) {
-            console.error('PDF Library Error:', error);
-            showToast('Failed to process PDF. Check console for details.', 'error');
-            document.getElementById('tool-output').innerHTML = '';
+            console.error('Compiler Error:', error);
+            out.innerHTML = \`<p style="color:var(--accent-danger);">Compiler Error: \${error.message}</p>\`;
         }
     };
 }

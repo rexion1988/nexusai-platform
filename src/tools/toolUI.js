@@ -214,48 +214,50 @@ export function getToolUI(slug) {
             </div>
         </div>`,
         'pdf-editor': `
-        <div class="tool-workspace">
+        <div class="tool-workspace" style="max-width:1200px; margin:0 auto;">
+            <style>
+                .pdf-text-node { position: absolute; min-width: 80px; min-height:24px; border: 1px dashed transparent; background: transparent; cursor: grab; padding:4px; box-sizing: border-box; line-height:1.2; font-family: Helvetica, Arial, sans-serif; resize:both; overflow:hidden; white-space:pre-wrap;}
+                .pdf-text-node:hover { border: 1px dashed rgba(0,0,0,0.4); }
+                .pdf-text-node:focus { border: 1px solid #7c5cfc; outline: none; background: rgba(255,255,255,0.9); cursor: text; box-shadow:0 0 0 2px rgba(124,92,252,0.2); z-index:100; }
+                .pdf-text-node:active { cursor: grabbing; }
+            </style>
+            
             <div class="tool-workspace-header">
-                <h3 class="tool-workspace-title">Secure PDF Editor</h3>
+                <h3 class="tool-workspace-title">Visual PDF Editor</h3>
             </div>
-            <p style="margin-bottom:1.5rem;color:var(--text-secondary);">Add text, dates, or signatures over your PDF. Processed entirely in your browser—100% private.</p>
-            <div class="tool-grid-2">
-                <div class="tool-input-section">
-                    <div class="input-group">
-                        <label class="input-label">1. Upload PDF Document</label>
-                        <div style="border:2px dashed var(--border-medium);border-radius:var(--radius-lg);padding:2rem;text-align:center;cursor:pointer;background:var(--bg-card-hover);" onclick="document.getElementById('file-input').click()">
-                            <div style="font-size:32px;margin-bottom:0.5rem;">📄</div>
-                            <p>Click to select PDF file</p>
-                            <input type="file" id="file-input" accept="application/pdf" style="display:none;">
-                        </div>
+            <p style="margin-bottom:1.5rem;color:var(--text-secondary);text-align:center;">Drag & drop text, add signatures, and edit entirely securely within your browser.</p>
+            
+            <div id="pdf-setup" style="text-align:center;padding:4rem;border:2px dashed var(--border-medium);border-radius:var(--radius-lg);margin-bottom:2rem;cursor:pointer;background:var(--bg-card-hover);transition:background 0.2s;" onclick="document.getElementById('file-input').click()">
+                <div style="font-size:48px;margin-bottom:1rem;">📄</div>
+                <h3 style="margin-bottom:0.5rem;color:var(--text-primary);">Upload Document</h3>
+                <p style="color:var(--text-muted);">Click to open a PDF file from your device</p>
+                <input type="file" id="file-input" accept="application/pdf" style="display:none;">
+            </div>
+
+            <div id="pdf-active-editor" style="display:none; flex-direction:column; gap:1rem;">
+                <div class="pdf-toolbar" style="display:flex;gap:1.5rem;background:var(--bg-card);padding:1rem;border-radius:var(--radius-md);border:1px solid var(--border-subtle);align-items:center;flex-wrap:wrap;">
+                    <button class="btn btn-primary btn-sm" onclick="window.addPdfText()">+ Add Text Overlay</button>
+                    <div style="width:1px;height:24px;background:var(--border-subtle);"></div>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <label style="font-size:12px;color:var(--text-muted);text-transform:uppercase;font-weight:600;">Size</label>
+                        <input type="number" id="pdf-font-size" value="16" style="width:60px;padding:6px;border-radius:4px;border:1px solid var(--border-medium);background:var(--bg-body);color:var(--text-primary);">
                     </div>
-                    <div class="input-group" style="margin-top:1.5rem;">
-                        <label class="input-label">2. Text to Add</label>
-                        <textarea class="input-field" id="pdf-text" rows="2" placeholder="e.g., APPROVED - 04/03/2026"></textarea>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <label style="font-size:12px;color:var(--text-muted);text-transform:uppercase;font-weight:600;">Color</label>
+                        <input type="color" id="pdf-text-color" value="#000000" style="padding:0;width:32px;height:32px;border:none;background:transparent;cursor:pointer;">
                     </div>
-                    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem;">
-                        <div class="input-group" style="flex:1;">
-                            <label class="input-label">X Position</label>
-                            <input type="number" class="input-field" id="pdf-x" value="50">
-                        </div>
-                        <div class="input-group" style="flex:1;">
-                            <label class="input-label">Y Position</label>
-                            <input type="number" class="input-field" id="pdf-y" value="100">
-                        </div>
-                        <div class="input-group" style="flex:1;">
-                            <label class="input-label">Font Size</label>
-                            <input type="number" class="input-field" id="pdf-size" value="24">
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" onclick="window.toolGenerate()" style="margin-top:1.5rem;">⚙️ Inject Text & Download PDF</button>
+                    <div style="flex:1;"></div>
+                    <button class="btn btn-secondary btn-sm" onclick="window.toolGenerate()" style="background:#10b981;color:white;border:none;">💾 Compile & Download</button>
                 </div>
-                <div class="tool-output-section">
-                    <div class="tool-output" id="tool-output" style="display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:300px;background:#f8f9fa;border:1px solid #e0e0ea;border-radius:var(--radius-md);">
-                        <div class="tool-output-empty"><span class="empty-icon">📑</span><p style="color:#555;">Your original file will remain untouched.</p></div>
+                
+                <div id="pdf-viewport-container" style="position:relative; width:100%; max-height:75vh; overflow:auto; background:#111; padding:2rem; border-radius:var(--radius-md); display:flex; justify-content:center; align-items:flex-start;">
+                    <div id="pdf-page-wrapper" style="position:relative; box-shadow:0 10px 40px rgba(0,0,0,0.5); transform-origin: top center;">
+                        <canvas id="pdf-canvas" style="display:block; background:white;"></canvas>
+                        <div id="pdf-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:10; pointer-events:none;"></div>
                     </div>
-                    <div class="tool-actions" id="output-actions"></div>
                 </div>
             </div>
+            <div id="tool-output" style="display:none;"></div>
         </div>`,
         // ===== MARKETING TOOLS =====
         'seo-meta': textTool('Page Topic / URL', 'e.g., Best AI tools for content creation in 2026', 'Generate SEO meta tags', [
