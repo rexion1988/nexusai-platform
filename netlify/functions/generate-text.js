@@ -13,7 +13,7 @@ export const handler = async (event, context) => {
     // Format the prompt for Instruct models
     const formattedPrompt = `<s>[INST] ${systemPrompt ? systemPrompt + '\n\n' : ''}${userPrompt} [/INST]`;
 
-    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+    const response = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.HF_TOKEN}`,
